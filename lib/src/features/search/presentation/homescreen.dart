@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productapp/src/features/search/controller/function.dart';
+import 'package:productapp/src/features/search/presentation/favourite.dart';
 import 'package:productapp/src/features/search/presentation/product.dart';
 
 class Homescreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class Homescreen extends StatefulWidget {
 class _HomescreenState extends State<Homescreen> {
   late Future<List<dynamic>> allProducts;
   List<dynamic> filteredProducts = [];
+  final Box favouritesBox = Hive.box('favourites');
   TextEditingController searchController = TextEditingController();
   List<dynamic> categories = [];
   String selectedCategory = "All";
@@ -36,7 +39,6 @@ class _HomescreenState extends State<Homescreen> {
     _checkConnectivity();
   }
 
-//check connectivity
   Future<void> _checkConnectivity() async {
     var connectivity = await checkConnectivity();
     setState(() {
@@ -44,7 +46,6 @@ class _HomescreenState extends State<Homescreen> {
     });
   }
 
-//UI filter
   void filterProducts(String query) {
     allProducts.then((products) {
       setState(() {
@@ -66,6 +67,27 @@ class _HomescreenState extends State<Homescreen> {
         }
       });
     });
+  }
+
+  void toggleFavourite(dynamic product) {
+    setState(() {
+      if (favouritesBox.containsKey(product['id'])) {
+        favouritesBox.delete(product['id']);
+        showSnackBar("Removed from favourites");
+      } else {
+        favouritesBox.put(product['id'], product);
+        showSnackBar("Added to favourites");
+      }
+    });
+  }
+
+  void showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
@@ -96,6 +118,19 @@ class _HomescreenState extends State<Homescreen> {
               ),
             ),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.favorite_border),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Favouritescreen(),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
       body: SafeArea(
@@ -113,7 +148,6 @@ class _HomescreenState extends State<Homescreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
-            //Search Bar
             Padding(
               padding: const EdgeInsets.only(top: 10, left: 15, right: 15),
               child: Row(
@@ -153,7 +187,6 @@ class _HomescreenState extends State<Homescreen> {
                 ],
               ),
             ),
-            //Filter option
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -181,7 +214,6 @@ class _HomescreenState extends State<Homescreen> {
                 ),
               ],
             ),
-            //Search Result
             Expanded(
               child: FutureBuilder<List<dynamic>>(
                 future: allProducts,
@@ -198,7 +230,7 @@ class _HomescreenState extends State<Homescreen> {
 
                   if (filteredProducts.isEmpty) {
                     return const Center(
-                      child: Text('No products match your search or filter'),
+                      child: Text('No products match is matching criteria'),
                     );
                   }
 
@@ -226,10 +258,11 @@ class _HomescreenState extends State<Homescreen> {
                           ),
                           title: Text(
                             product['title'],
-                            style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -238,41 +271,42 @@ class _HomescreenState extends State<Homescreen> {
                             children: [
                               Text(
                                 '${product['category'][0].toUpperCase()}${product['category'].substring(1).toLowerCase()}',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w400),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                               Text(
                                 '\$ ${product['price']}',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w400),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ],
                           ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.star, color: Colors.amber),
-                              Text(
-                                product['rating']['rate'].toString(),
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w500),
-                              ),
-                            ],
+                          trailing: IconButton(
+                            icon: Icon(
+                              favouritesBox.containsKey(product['id'])
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              toggleFavourite(product);
+                            },
                           ),
                           onTap: () async {
                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Productscreen(
-                                    productId: product['id'].toString(),
-                                  ),
-                                ));
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Productscreen(
+                                  productId: product['id'].toString(),
+                                ),
+                              ),
+                            );
                           },
                         ),
                       );

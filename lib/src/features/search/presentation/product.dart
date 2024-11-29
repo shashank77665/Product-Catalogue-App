@@ -101,8 +101,8 @@ class _ProductscreenState extends State<Productscreen> {
                 children: [
                   Image.network(
                     productDetails!['image'],
-                    height: 50,
-                    width: 50,
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    width: double.infinity,
                     fit: BoxFit.contain,
                     errorBuilder: (BuildContext context, Object error,
                         StackTrace? stackTrace) {
